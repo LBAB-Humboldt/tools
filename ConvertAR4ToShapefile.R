@@ -44,14 +44,14 @@ ConvertAR4ToShapefile<-function(file,file.dir){
   }
   
   new.shp<-SpatialPointsDataFrame(out.file[, c("x","y")],out.file[, 3:14], proj4string=CRS("+proj=longlat +ellps=WGS84"))
-  writeOGR(new.fhp, file.fir,
+  writeOGR(new.shp, file.fir,
            strsplit("BCM2_SRA1B_1_tas-change_2011-2030.nc","\\.")[[1]][1],
            driver="ESRI Shapefile",
            check_exists=T,
            overwrite_layer=TRUE)
-  return(newShp)                               
+  return(new.shp)                               
 }
 
 #Example:
-  tas_BCM2<-convertAR4ToShapefile("BCM2_SRA1B_1_tas-change_2011-2030.nc",
+  tas_BCM2<-ConvertAR4ToShapefile("BCM2_SRA1B_1_tas-change_2011-2030.nc",
                                   "D:/Datos/IPCC/IPCC-Data/A1B_anomalies/tas/2011-2030")
