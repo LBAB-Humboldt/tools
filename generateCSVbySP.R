@@ -1,5 +1,6 @@
 #Creates CSV files of occurrences for each species with a model (.RData)
 
+#Load .RData objects with occurrences and geographical/taxonomic validation
 load("C:/Users/jorge.velasquez/Google Drive/Bases/Ocurrencias/CO_GBIFSIB_23082013.RData")
 load("C:/Users/jorge.velasquez/Google Drive/Bases/Ocurrencias/GEO_GBIFSIB_23082013.RData")
 load("C:/Users/jorge.velasquez/Google Drive/Bases/Ocurrencias/GBIFSIB_23082013.RData")
@@ -18,7 +19,8 @@ df<-data.frame(id=paste0(db$db$collection,"-",db$db$catalogNumber),
                collector=db$db$collector,
                basisOfRecordd=db$db$basisOfRecord)
 
-rem=which(set16$bien_depto==1) #Seleccione registros con el departamento bien
+#Seleccione registros con el departamento bien
+rem=which(set16$bien_depto==1)
 df<-df[rem,]
 
 #Quitar duplicados basados en los campos species, lat, lon
