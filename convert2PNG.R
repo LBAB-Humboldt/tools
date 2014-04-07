@@ -13,8 +13,8 @@
 #Usage:
 #  include=c("_min.tif","_min_cut.tif","_10p.tif","_10p_cut.tif","_ess.tif","_ess_cut.tif","_mss.tif","_mss_cut.tif")
 #  inFolder<-"W:/Modelos/20131122"
-#  outKMZ="W:/Visor/20131122/KMZ"
-#  outPNG="W:/Visor/20131122/PNG"
+#  outKMZ="C:/Visor/KMZ"
+#  outPNG="C:/Visor/PNG"
 #  convert2PNG(inFolder,include,outKMZ,outPNG)
 #
 #Author: Jorge Velásquez
@@ -25,7 +25,7 @@ convert2PNG<-function(inFolder,include,outKMZ,outPNG){
   require(snowfall)
 
   #Get the list of files to process
-  files<-list.files(in.folder,pattern="*.RData$")
+  files<-list.files(inFolder,pattern="*.RData$")
   spNames<-sapply(strsplit(files,"\\."),"[[",1)
   files2process<-vector()
   for(i in 1:length(spNames)){
@@ -42,10 +42,13 @@ convert2PNG<-function(inFolder,include,outKMZ,outPNG){
   sfLibrary(raster)
 
   sfClusterApplyLB(files2process,function(j){
-    inRaster<-raster(files2process[j])
-    name=strsplit(files2process[j],"[.]")[[1]][1]
-    KML(inRaster,filename=paste0(outKMZ,"/",name,".kmz"),maxpixels=ncell(inRaster),col=c(tr,fill),overwrite=T)
+    inRaster<-raster(paste0(inFolder,"/",j))
+    name=strsplit(j,"[.]")[[1]][1]
+    print(name)
+    KML(inRaster,filename=paste0(outKMZ,"/",name,".kmz"),
+        maxpixels=ncell(inRaster),col=c(tr,fill),overwrite=T)
     unzip(paste0(outKMZ,"/",name,".kmz"),exdir=outPNG)
     file.remove(paste0(outPNG,"/",name,".kml"))
   })
+  sfStop()
 }
