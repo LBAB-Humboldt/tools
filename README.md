@@ -28,3 +28,14 @@ This repository hosts miscellaneous functions used in LBAB analyses
     # isDuplicate (which indicates whether a GBIF record is already included in SIB).
     #Author: Jorge Velásquez (jvelasquez@humboldt.org.co)
     #Date: March 15, 2013
+>
+    #IUCN_consulta_individual_sp.R
+    #Extract a groups species shape files and write them
+    #Código para extraer los polígonos de una especie de los mpas experto de la IUCN.
+    #Se desarrolla este código porque dichos mapa experto traen todos los polígonos de las
+    #especies del grupo en una sola capa
+    #Arguments: Se deben tener los shapes de grupos de la IUCN
+
+    #Author: Ivan Gonzalez (igonzalez@humboldt.org.co)
+    #Date: March 15, 2014
+	
