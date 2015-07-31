@@ -1,77 +1,82 @@
 #convert2PNG.R
 #
-#Converts all the tif files in a folder to KMZ and PNG
-#as long as their filename matches any of the strings in the argument include. The color
-#scheme is thought only for the binary color scheme used in BioModelos.
+#This function creates a KMZ file, georeferenced PNG and a thumb PNG for any given tif file.
+#Projection, extent and color scheme have been optimized for BioModelos
+#This function can be wrapped in a for loop or apply (sapply or sfClusterApplyLB) to
+#convert all tif files on a list. See example below
 #
 #Args:
-# inFolder = folder that contains .tif files to convert
-# include = character vector with the string patterns that filenames should match
-# outPNG = folder where PNGs will be saved
-# outPNG = folder where KMZs will be saved
-# outThumb = folder where thumbs will be saved
+# sp.raster = character string with tif filename (including extension)
+# in.folder = folder that contains the .tif file to convert
+# col.pal = color palette to be used in resulting maps
+# add.trans = add trasparent color to palette? Usually you would use TRUE when the tif file
+# contains NA, 0 and 1 values, whereas you would use FALSE when the tif only
+# has NA and 1 values.
+# params = list with elements dem, corresponding to a raster with elevation to be displayed in
+#  the background of thumbnails, and shape, corresponding to a SpatialPolygonsDataFrame with 
+#  administrative boundaries to be displayed in thumbnail.
 #
 #Usage:
-#  include=c("_min.tif","_min_cut.tif","_10p.tif","_10p_cut.tif","_ess.tif","_ess_cut.tif","_mss.tif","_mss_cut.tif")
-#  inFolder<-"W:/Modelos/20131122"
-#  outKMZ="C:/Visor/KMZ"
-#  outPNG="C:/Visor/PNG"
-#  outThumb="C:/Visor/thumbs"
-#  convert2PNG(inFolder,include,outKMZ,outPNG)
+#   in.folder = "~/Modelos/librorojo2"
+#   col.pal = rgb(193,140,40,maxColorValue=255)
+#   sp.raster = "Anas_bahamensis_0.tif"
+#   convert2PNG(sp.raster, in.folder, col.pal, TRUE, params=params)
 #
-#Author: Jorge Velásquez
-#Date: 26-02-2014
+#Example on parallel loop
+# require(snowfall)
+# sfInit(parallel=T,cpus=16)#Initialize nodes
+# sfExportAll() #Export vars to all the nodes
+# sfClusterSetupRNG()
+# sfClusterApplyLB(sp.list, convert2PNG, in.folder=in.folder, 
+#  col.pal=col.pal, add.trans=TRUE, params=params)
+# sfStop()
+#
+#Author: Jorge VelÃ¡squez
+#Date: 05-09-2014
 
-convert2PNG<-function(inFolder,include,outKMZ,outPNG,outThumb){
+convert2PNG<-function(sp.raster, in.folder, col.pal, add.trans, params){
   require(raster)
-  require(snowfall)
   require(sp)
   require(rgdal)
-
-  #Get the list of files to process
-  files<-list.files("W:/Modelos/20131122",pattern="*.RData$")
-  spNames<-sapply(strsplit(files,"\\."),"[[",1)
-  files2process<-vector()
-  for(i in 1:length(spNames)){
-    files2process<-c(files2process,paste(spNames[i],include,sep=""))
+  
+  #Create dirs
+  dir.create(paste0(in.folder,"/PNG"), recursive=T)
+  dir.create(paste0(in.folder,"/KMZ"), recursive=T)
+  dir.create(paste0(in.folder,"/thumb"), recursive=T)
+  
+  #Plots for geovisor
+  in.raster <- raster(paste0(in.folder, "/", sp.raster))
+  if(is.na(projection(in.raster))){
+    projection(inRaster)<-"+proj=longlat +ellps=WGS84 +datum=WGS84"
   }
   
-  #Plotting parameters
-  tr=rgb(255,255,255,0,maxColorValue=255)
-  fill=rgb(193,140,40,maxColorValue=255)
+  #Remove colors if not enough categories
+  freq.cat <- freq(in.raster)
+  ind <- freq.cat[which(freq.cat[, 1]>0)]
+  col.pal <- col.pal[ind]
+  tr<-rgb(255, 255, 255, 0, maxColorValue=255)
+  if(add.trans){
+    col.pal <- c(tr, col.pal)
+  }
+  print(col.pal)
   
-  #Create base rasters
-  colombia<-readOGR(dsn="C:/Users/aves/Google Drive H/Google Drive/SDM_BaseFiles/tmp","COL_adm0")
-  thumb_aoi<-readOGR(dsn="C:/Users/aves/Google Drive H/Google Drive/SDM_BaseFiles/tmp","thumbnail_area")
-  dem<-raster("C:/Users/aves/Google Drive H/Google Drive/SDM_BaseFiles/tmp/alt.asc")
-  dem1000_co <- crop((dem > 1000),thumb_aoi)
-  mask.co <- rasterize(colombia,dem1000_co,field=1)
-  dem1000_co <- dem1000_co * mask.co
+  #Create KML
   
-  #Start parallel plotting
-  sfInit(parallel=T,cpus=12)#Initialize nodes
-  sfExportAll() #Export vars to all the nodes
-  sfLibrary(raster)
-
-  sfClusterApplyLB(files2process,function(j){
-    #Plots for geovisor
-    inRaster<-raster(paste0(inFolder,"/",j))*1
-    name=strsplit(j,"[.]")[[1]][1]
-    print(name)
-    KML(inRaster,filename=paste0(outKMZ,"/",name,".kmz"),
-        maxpixels=ncell(inRaster),col=c(tr,fill),overwrite=T)
-    unzip(paste0(outKMZ,"/",name,".kmz"),exdir=outPNG)
-    file.remove(paste0(outPNG,"/",name,".kml"))
-    
-    #Generate thumbnails
-    in.raster_co <- crop(inRaster,thumb_aoi)*mask.co
-    png(paste0(outThumb,"/",name,"_thumb.png"),width=145,height=205,units="px",type="cairo")
-    op <- par(mar = rep(0, 4),bg=NA)
-    image(dem1000_co,axes=F,xlab="",ylab="",col=c(tr,"grey90"))
-    image(in.raster_co,col=c(tr,fill),axes=FALSE,add=T)
-    plot(colombia,add=T,lwd=1,border="grey40",)
-    dev.off()
-    unlink(list.files(tempdir()),recursive=T)
-  })
-  sfStop()
+  name <- strsplit(sp.raster,"[.]")[[1]][1]
+  KML(in.raster, filename=paste0(in.folder,"/KMZ/",name,".kmz"),
+      maxpixels=ncell(in.raster), col=col.pal, overwrite=T, blur=3,zip="C:/Rtools/bin")
+  unzip(paste0(in.folder, "/KMZ/", name, ".kmz"), exdir=paste0(in.folder,"/PNG"))
+  file.remove(paste0(in.folder, "/PNG/", name,".kml"))
+  
+  #Generate thumbnails
+  in.raster.co <- in.raster
+  png(paste0(in.folder, "/thumb/", name, "_thumb.png"),
+      width=145, height=205, units="px", type="cairo")
+  op <- par(mar = rep(0, 4), bg=NA)
+  image(params$dem, axes=F, xlab="", ylab="", col=c(tr, "grey90"))
+  image(in.raster.co, col=col.pal, axes=FALSE, add=T)
+  plot(params$shape, add=T, lwd=1, border="grey40",)
+  dev.off()
+  unlink(list.files(tempdir()),recursive=T)
 }
+
