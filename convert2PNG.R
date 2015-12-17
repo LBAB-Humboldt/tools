@@ -1,5 +1,4 @@
 #convert2PNG.R
-#
 #This function creates a KMZ file, georeferenced PNG and a thumb PNG for any given tif file.
 #Projection, extent and color scheme have been optimized for BioModelos
 #This function can be wrapped in a for loop or apply (sapply or sfClusterApplyLB) to
@@ -28,11 +27,11 @@
 # sfExportAll() #Export vars to all the nodes
 # sfClusterSetupRNG()
 # sfClusterApplyLB(sp.list, convert2PNG, in.folder=in.folder, 
-#  col.pal=col.pal, add.trans=TRUE, params=params)
+# col.pal=col.pal, add.trans=TRUE, params=params)
 # sfStop()
 #
-#Author: Jorge Velásquez
-#Date: 05-09-2014
+#Author: Jorge Velasquez
+#Date created: 05-09-2014
 
 convert2PNG<-function(sp.raster, in.folder, col.pal, add.trans, params){
   require(raster)
@@ -47,7 +46,7 @@ convert2PNG<-function(sp.raster, in.folder, col.pal, add.trans, params){
   #Plots for geovisor
   in.raster <- raster(paste0(in.folder, "/", sp.raster))
   if(is.na(projection(in.raster))){
-    projection(inRaster)<-"+proj=longlat +ellps=WGS84 +datum=WGS84"
+    projection(in.raster)<-"+proj=longlat +ellps=WGS84 +datum=WGS84"
   }
   
   #Remove colors if not enough categories
@@ -61,10 +60,9 @@ convert2PNG<-function(sp.raster, in.folder, col.pal, add.trans, params){
   print(col.pal)
   
   #Create KML
-  
   name <- strsplit(sp.raster,"[.]")[[1]][1]
   KML(in.raster, filename=paste0(in.folder,"/KMZ/",name,".kmz"),
-      maxpixels=ncell(in.raster), col=col.pal, overwrite=T, blur=3,zip="C:/Rtools/bin")
+      maxpixels=ncell(in.raster), col=col.pal, overwrite=T, blur=3)
   unzip(paste0(in.folder, "/KMZ/", name, ".kmz"), exdir=paste0(in.folder,"/PNG"))
   file.remove(paste0(in.folder, "/PNG/", name,".kml"))
   
